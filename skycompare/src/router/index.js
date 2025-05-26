@@ -1,0 +1,29 @@
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import WelcomeView from '../components/Start.vue'
+import MainView from '../views/Main.vue'
+
+Vue.use(VueRouter)
+
+const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: WelcomeView
+  },
+  {
+    path: '/MainCompare',
+    name: 'compare',
+    component: MainView
+
+  },
+
+]
+
+const router = new VueRouter({
+  mode: 'history',
+  base: process.env.BASE_URL,
+  routes
+})
+
+export default router
