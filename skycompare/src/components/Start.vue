@@ -5,6 +5,7 @@
     </div>
     <div>
       <h1>Welcome to SkyCompare</h1>
+      <p style="color: white;">by Jose Luis Viejo  & David Villar</p>
     </div>
     <button class="button1" @click="access"> Start</button>
   </div>

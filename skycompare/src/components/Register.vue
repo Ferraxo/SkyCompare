@@ -1,5 +1,5 @@
 <template>
-    <v-sheet class="loginComponent">
+    <v-sheet class="registerComponent">
       <span class="cerrar" @click="exit">X</span>
       <v-card class="cardComponent">
         <v-form v-model="form" @submit.prevent="onSubmit">
@@ -14,14 +14,14 @@
             placeholder="Write your email" clearable color="#ff5e00"></v-text-field>
 
           <v-text-field v-model="password" :readonly="loading" :rules="[required]" label="Password"
-            placeholder="Write your password" clearable color="#ff5e00"></v-text-field>
+            placeholder="Write your password" clearable color="#ff5e00" type="password"></v-text-field>
 
           <v-text-field v-model="password2" :readonly="loading" :rules="[required]" label="Repeat password"
-            placeholder="Repeat your password" clearable color="#ff5e00"></v-text-field>
+            placeholder="Repeat your password" clearable color="#ff5e00" type="password"></v-text-field>
 
           <br>
 
-          <v-btn :disabled="!form" :loading="loading" color="success" size="large" type="submit" variant="elevated" @click="exit"
+          <v-btn :disabled="!form" :loading="loading" color="success" size="large" type="submit" variant="elevated" 
             block>
             Accept
           </v-btn>
@@ -47,6 +47,7 @@
     if (!form.value) return;
     loading.value = true;
     setTimeout(() => (loading.value = false), 2000);
+
     if(password.value == password2.value){
       await axios.get("http://localhost:5152/register", {
         params: {
@@ -55,24 +56,30 @@
           email: email.value,
           password: password.value,
         }
-      }).then(res => {
-        alert(res.data);
-        out = 1;
+      }).then(async res => {
+        alert(res.data);      
+        if(res.data=="User is in db") out=0;
+        else out = 1;
+        
       })
     }else{
       alert("Both password are differents");
     }
 
     if(out==1){
-      
-      let event = new Event("close");
-      this.dispatchEvent(event);
-
+      alert("termina");
+      end();
     }
   }
 
   function required(v) {
     return !!v || 'Field is required';
+  }
+
+
+  function end(){
+    let event = new Event("closeWindow");
+    dispatchEvent(event);
   }
 </script>
 
@@ -90,20 +97,16 @@ export default {
     VBtn,
     VSpacer
   },
-  data:()=>({
-    
-  }),
   methods:{
     exit(){
-      alert("chivato");
       this.$emit("close");
-    },
+    }
   },
 }
 </script>
 
 <style scoped>
-.loginComponent {
+.registerComponent {
   width: 500px;
   height: 500px;
   border-style: solid;

@@ -2,44 +2,87 @@
   <div class="Main">
 
     <div class="menu">
-      <img alt="Vue logo" src="../assets/logo.png" height="100%" width="5%" class="logoMain">
-      <span>SkyCompare®</span>
-      <nav>
+      <img alt="Vue logo" src="../assets/logo.png" height="100%" width="5%" class="logoMain" @click="goBack">
+      <span @click="goBack">SkyCompare®</span>
+      <nav class="navigator">
+        <v-btn class="vbtn" :disabled="!user">Save comparison</v-btn>
+        <v-btn class="vbtn" :disabled="!user">Set favourite airport</v-btn>
       </nav>
-      <p id="login" @click="login">Login</p>
+      <p id="login" @click="login" v-show="showLogin">Login</p>
+      <p class="user" v-show="!showLogin" @click="closeSession">{{ nickname }}</p>
     </div>
-    <LoginView v-show="loginShow" @close="closeLogin" @register="registerForm" class="login"/>
-    <RegisterView v-show="registerShow" @close="closeRegister" class="register"/>
+    <v-card class="selects">
+      <v-select :items="airports" class="airfield" label="Departure Airport"></v-select>
+      <v-btn class="goBtn">GO</v-btn>
+      <v-select :items="airports" class="airfield" label="Arrival Airport"></v-select>
+
+    </v-card>
+    <Confirm :question="peticion" v-show="showConfirm" @close="closePeticion"/>
   </div>
 </template>
 
 <script>
-import LoginView from "@/components/Login.vue"
-import RegisterView from "@/components/Register.vue"
+import Confirm from "@/components/Confirm.vue";
+import {VBtn, VCard, VSelect} from "vuetify/lib";
+import axios from "axios";
+
 export default {
   name: 'MainComponent',
   components:{
-    LoginView,
-    RegisterView,
-  },
+    Confirm,
+    VBtn,
+    VCard,
+    VSelect,
+  },  
   data:()=>({
-    loginShow: false,
-    registerShow: false,
+    showLogin: true,
+    showConfirm: false,
+    nickname: "",
+    peticion: "",
+    airports: [],
+    user: false,
   }),
+  mounted(){
+    const user = sessionStorage.getItem("user");
+    if(user!=null && user!=""){
+      this.nickname = user;
+      this.showLogin=false;
+      this.user = true;
+    }
+    this.getAirports();
+  },  
   methods:{
+    goBack(){
+      this.$router.push("/");
+    },  
     login(){
-      this.loginShow=true;
+      this.$router.push("/Login");
     },
-    closeLogin(){
-      this.loginShow=false;
+    closeSession(){
+      this.peticion="Do you really want close your session";
+      this.showConfirm=true;
     },
-    registerForm(){
-      this.loginShow=false;
-      this.registerShow=true;
+    closePeticion(code){
+      this.showConfirm=false;
+      if(code==0){
+        this.showLogin=true;
+        sessionStorage.removeItem("user");
+        this.user=false;
+      }
     },
-    closeRegister(){
-      this.registerShow=false;
-      this.loginShow=true;
+    getAirports(){
+      var airp = [];
+      axios.get("http://localhost:5152/airports").then(r=>{
+        console.log(r.data[0].IATA + " " + r.data.length);
+        for(var i=0; i<r.data.length; i++){
+          console.log(r.data[i].IATA);
+          var string = r.data[i].IATA;
+          airp.push(string);
+        }
+        console.log(airp)
+        this.airports = airp;
+        console.log(this.airports);
+      });
     }
   }
 }
@@ -111,15 +154,39 @@ p:hover{
   border-radius: 30px;
 }
 
-.login{
-  position: absolute;
-  margin-top: 15%;
-  margin-left: 30%;
+.navigator{
+  margin-left: 30vw;
+  padding-top: 5px;
 }
 
-.register{
-  position:absolute;
-  margin-top: 7%;
-  margin-left: 30%;
+.vbtn{
+  margin-left: 10px;
+  border-style: solid;
+  border-color: #ff5e00;
+  border-radius: 15px;
 }
+
+.selects{
+  margin-top: 60px;
+  display: flex;
+  width: 70vw;
+  margin-left: 15vw;
+  border-style: solid;
+  border-color: #ff5e00;
+  border-radius: 15px;
+  border-width: 3px;
+}
+
+.airfield{
+  margin-left: 8vw;
+  padding-right: 8vw;
+}
+
+.goBtn{
+  margin-top: 15px;
+  border-style: solid;
+  border-color: #ff5e00;
+  border-radius: 15px;
+}
+
 </style>

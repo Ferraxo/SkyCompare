@@ -1,7 +1,9 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import WelcomeView from '../components/Start.vue'
+import LoginView from '../views/Login.vue'
 import MainView from '../views/Main.vue'
+//import { component } from 'vue/types/umd'
 
 Vue.use(VueRouter)
 
@@ -10,6 +12,11 @@ const routes = [
     path: '/',
     name: 'home',
     component: WelcomeView
+  },
+  {
+    path: '/Login',
+    name: 'login',
+    component: LoginView
   },
   {
     path: '/MainCompare',
