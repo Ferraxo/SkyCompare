@@ -4,11 +4,13 @@ import (
 	"crypto/md5"
 	"database/sql" // Interactuación con la base de datos
 	"encoding/json"
+	"strconv"
+	"strings"
 
-	// Pa devolver vectores
 	"fmt" // Imprimir en consola
 	"io"
 
+	"math/rand" //aleatorios
 	// Ayuda a escribir en la respuesta
 	"net/http" // El paquete HTTP
 
@@ -27,9 +29,29 @@ type Airport struct {
 	IATA     string `json:"IATA"`
 }
 
+type Route struct {
+	Id          int     `json:"id"`
+	Departure   string  `json:"departure"`
+	Destination string  `json:"arrival"`
+	Duration    int     `json:"duration"`
+	Avg_price   float32 `json:"price"`
+}
+
+type Company struct {
+	Id       int     `json:"id"`
+	Name     string  `json:"name"`
+	Multiply float32 `json:"multiply"`
+}
+
+type Fly struct {
+	Airway Route   `json:"route"`
+	Corpor Company `json:"company"`
+	Price  float32 `json:"price"`
+}
+
 func databaseConection() (db *sql.DB, e error) {
 	user := "root"
-	pass := "ROOT"
+	pass := "aaaa"
 	host := "tcp(127.0.0.1:3306)"
 	databaseName := "skycompare"
 
@@ -155,6 +177,101 @@ func airports(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func airportsWithoutOne(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var noAirport = r.Form.Get("IATA")
+	fmt.Printf("\nCharging airports minus %s", noAirport)
+
+	db, err := databaseConection()
+	if err != nil {
+		fmt.Printf("Error getting database: %v", err)
+		return
+	}
+
+	rows, err := db.Query("SELECT id, name, location, IATA FROM airports")
+
+	defer rows.Close()
+
+	if err == nil {
+		airports := []Airport{}
+
+		for rows.Next() {
+			var a Airport
+			rows.Scan(&a.Id, &a.Name, &a.Location, &a.IATA)
+			if a.IATA != noAirport {
+				airports = append(airports, a)
+				fmt.Printf("%v\n", a)
+			}
+		}
+
+		fmt.Print(airports)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(airports)
+	} else {
+		fmt.Printf("\n%v", err)
+	}
+}
+
+func getRoutes(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var dep = r.Form.Get("dep")
+	var arr = r.Form.Get("arr")
+	fmt.Printf("\nSearching routes for %s-%s", dep, arr)
+
+	db, err := databaseConection()
+	if err != nil {
+		fmt.Printf("Error getting database: %v", err)
+		return
+	}
+
+	rows, err := db.Query("SELECT * FROM routes WHERE departure=? && destination=?", dep, arr)
+	corporations, err2 := db.Query("SELECT * FROM company")
+
+	defer rows.Close()
+	defer corporations.Close()
+
+	if err == nil && err2 == nil {
+		airways := []Fly{}
+		companies := []Company{}
+
+		for corporations.Next() {
+			var c Company
+			corporations.Scan(&c.Id, &c.Name, &c.Multiply)
+			companies = append(companies, c)
+		}
+
+		var r Route
+		for rows.Next() {
+			rows.Scan(&r.Id, &r.Departure, &r.Destination, &r.Duration, &r.Avg_price)
+			fmt.Printf("\n%v", r)
+		}
+
+		var rnd = rand.Intn(4)
+
+		fmt.Printf("\n%d companies on route\n", rnd)
+		comps := "    "
+		for count := 0; count <= rnd; count++ {
+			num := rand.Intn(len(companies))
+			if !strings.Contains(comps, strconv.Itoa(num)) {
+				comps = comps + strconv.Itoa(num) + "    "
+				ranComponent := rand.Float32()*(1.35-0.65) + 0.65
+				price := r.Avg_price * companies[num].Multiply * ranComponent
+				f := Fly{r, companies[num], price}
+				airways = append(airways, f)
+			} else {
+				count = count - 1
+			}
+		}
+		fmt.Print(airways)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(airways)
+	} else {
+		fmt.Printf("\n%v", err)
+	}
+}
+
 func middlewareCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +288,6 @@ func middlewareCors(next http.Handler) http.Handler {
 			// and call next handler!
 			next.ServeHTTP(w, r)
 		})
-
 }
 
 func main() {
@@ -195,6 +311,8 @@ func main() {
 	app.HandleFunc("/register", register)
 	app.HandleFunc("/login", login)
 	app.HandleFunc("/airports", airports)
+	app.HandleFunc("/airports/selected", airportsWithoutOne)
+	app.HandleFunc("/routes", getRoutes)
 
 	http.ListenAndServe(":5152", middlewareCors(app))
 
